@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 using System.Collections.Generic;
 
 public static class CommandLine
@@ -12,15 +14,15 @@ public static class CommandLine
 
         var args = Environment.GetCommandLineArgs();
 
-        var buildPath = "";
+        var buildDir = "";
         var devBuild = false;
         var targets = new BuildTarget[0];
 
         for (var i = 0; i < args.Length; ++i)
         {
-            if (args[i] == "--BuildPath")
+            if (args[i] == "--BuildDir")
             {
-                buildPath = args[i + 1];
+                buildDir = args[i + 1];
             }
 
             if (args[i] == "--MakeDevBuild")
@@ -49,7 +51,9 @@ public static class CommandLine
         var error = string.Empty;
         foreach (var buildTarget in targets)
         {
-            var buildError = BuildPipeline.BuildPlayer(scenes, buildPath, buildTarget, buildOptions);
+            var fullBuildPath = Path.Combine(buildDir, Path.Combine(buildTarget.ToString(), "TestProject"));
+            fullBuildPath = Path.ChangeExtension(fullBuildPath, GetExtensionFromTarget(buildTarget));
+            var buildError = BuildPipeline.BuildPlayer(scenes, fullBuildPath, buildTarget, buildOptions);
             if (!string.IsNullOrEmpty(buildError))
             {
                 error += "Error building " + buildTarget + ": " + buildError;
@@ -59,6 +63,24 @@ public static class CommandLine
         if (!string.IsNullOrEmpty(error))
         {
             throw new Exception("Build failed: " + error);
+        }
+    }
+
+    private static string GetExtensionFromTarget(BuildTarget buildTarget)
+    {
+        switch (buildTarget)
+        {
+            case BuildTarget.StandaloneWindows:
+                return "exe";
+
+            case BuildTarget.StandaloneOSXIntel:
+                return "app";
+
+            case BuildTarget.StandaloneLinux:
+                return ".x86";
+
+            default:
+                throw new NotImplementedException("Unknown build target: " + buildTarget);
         }
     }
 }
